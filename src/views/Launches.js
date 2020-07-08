@@ -2,14 +2,13 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import axios from "axios";
 
-var filterTerm = "";
-
 class LaunchesView extends Component {
   constructor(props) {
     super(props);
     this.state = {
       launches: [],
       loading: false,
+      filterTerm: "",
       sort: 'Mission'
     };
   }
@@ -41,29 +40,29 @@ class LaunchesView extends Component {
       return <div> NO DATA </div>;
     }
 
-    var filteredLaunches = [];
-    for (var i = 0; i < this.state.launches.length; i++) {
-      var launch = this.state.launches[i];
-      if (launch.mission_name.includes(filterTerm)) {
-        filteredLaunches.push(launch);
+    // add my showModal async/awaits function added to props in app;
+    const {showModal} = this.props;
+    // new launchDetails array with sorted and filtered results from when DidMount then map in tags
+    const launchDetails = this.state.launches.filter((launch) => {
+      return launch.mission_name.toLowerCase().includes(this.state.filterTerm.toLowerCase())
+    }).sort((a, b) => {
+      // filterTerm will be one of Mission or Rocket - default is Mission
+      if (this.state.sort === "Rocket") {
+        return a.rocket.rocket_name > b.rocket.rocket_name ? 1 : -1;
       }
-    }
-
-    var launchDetails = [];
-
-    for (var i = 0; i < filteredLaunches.length; i++) {
-      var launch = filteredLaunches[i];
-
-      launchDetails.push(
-        <li className="launch">
+      return a.mission_name > b.mission_name ? 1 : -1;
+    }).map((launch) =>
+      (<li className="launch" key={launch.flight_number}>
           <h2> {launch.mission_name} </h2>
+          <button type="button" onClick={() => showModal(launch)}>
+            Rocket Details
+          </button>
           <div> {launch.rocket.rocket_name} </div>
           <div className="launch-details-popup">
             {launch.details || "No details to display"}
           </div>
-        </li>
-      );
-    }
+      </li>)
+    );
 
     return <ul>{launchDetails}</ul>;
   }
@@ -71,13 +70,14 @@ class LaunchesView extends Component {
   render() {
 
     var handleFilterChange = (e) => {
-      filterTerm = e.currentTarget.value;
+      const filterTerm = e.currentTarget.value;
+      this.setState({ filterTerm: filterTerm })
     };
 
     var handleSortClick = (sortBy) => {
       var currentSort = this.state.sort;
       var newSort;
-      if (currentSort == 'Rocket') {
+      if (currentSort === 'Rocket') {
         newSort = 'Mission'
       } else {
         newSort = 'Rocket'
@@ -87,9 +87,11 @@ class LaunchesView extends Component {
 
     return (
       <div>
-        <label htmlFor="term-filter">Term:</label>
-        <input name="filter" type="text" onChange={handleFilterChange} />
-        <button onClick={() => handleSortClick('Rocket')}>Sort by {this.state.sort}</button>
+        <div className={'search'}>
+          <label htmlFor="term-filter">Term:</label>
+          <input name="filter" type="text" onChange={handleFilterChange} />
+          <button onClick={() => handleSortClick('Rocket')}>Sort by {this.state.sort}</button>
+        </div>
         {this.getContent()}
       </div>
     );
